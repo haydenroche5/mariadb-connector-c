@@ -1,4 +1,5 @@
 /* Copyright (C) 2013 by MontyProgram AB
+                 2014-2021 MariaDB Corporation AB
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -44,6 +45,24 @@ typedef struct st_mariadb_db_driver
   char *name;
   void *buffer;
 } MARIADB_DB_DRIVER;
+
+enum enum_option_type {
+  MARIADB_OPTION_NONE,
+  MARIADB_OPTION_BOOL,
+  MARIADB_OPTION_INT,
+  MARIADB_OPTION_SIZET,
+  MARIADB_OPTION_STR,
+  MARIADB_OPTION_FUNC,
+};
+
+struct st_default_options {
+  union {
+    enum mysql_option option;
+    int (*option_func)(MYSQL *mysql, const char *value, ssize_t len);
+  } u;
+  enum enum_option_type type;
+  const char *conf_key;
+};
 
 struct mysql_async_context;
 

@@ -32,6 +32,10 @@ extern "C" {
 #define MYSQL_CLIENT
 #endif
 
+#ifdef _MSC_VER
+typedef SSIZE_T ssize_t;
+#endif
+
 #include <stdarg.h>
 
 #if !defined (_global_h) && !defined (MY_GLOBAL_INCLUDED) /* If not standard header */
@@ -531,6 +535,9 @@ int		STDCALL mysql_ssl_set(MYSQL *mysql, const char *key,
 const char *	STDCALL mysql_get_ssl_cipher(MYSQL *mysql);
 my_bool		STDCALL mysql_change_user(MYSQL *mysql, const char *user, 
 					  const char *passwd, const char *db);
+MYSQL *   STDCALL mariadb_dsn_connect(MYSQL *mysql,
+                                      const char *dsn,
+                                      ssize_t len);
 MYSQL *		STDCALL mysql_real_connect(MYSQL *mysql, const char *host,
 					   const char *user,
 					   const char *passwd,

@@ -1154,7 +1154,11 @@ static int test_mdev12965(MYSQL *unused __attribute__((unused)))
 
   diag("Config file: %s", cnf_file1);
 
-  FAIL_IF(!access(cnf_file1, R_OK), "access");
+  if (!access(cnf_file1, R_OK))
+  {
+    diag("errno %d when accessing %s", errno, cnf_file1);
+    return SKIP;
+  }
 
   mysql= mysql_init(NULL);
   fp= fopen(cnf_file1, "w");
@@ -1437,7 +1441,8 @@ static int test_conc395(MYSQL *unused __attribute__((unused)))
 
   snprintf(cnf_file1, FN_REFLEN, "%s%c.my.cnf", env, FN_LIBCHAR);
 
-  FAIL_IF(!access(cnf_file1, R_OK), "access");
+  if (access(cnf_file1, R_OK))
+    return SKIP;
 
   mysql= mysql_init(NULL);
   fp= fopen(cnf_file1, "w");
@@ -1599,7 +1604,7 @@ int display_extended_field_attribute(MYSQL *mysql)
     if (!mariadb_field_attr(&field_attr, &fields[0],
                             MARIADB_FIELD_ATTR_DATA_TYPE_NAME))
     {
-      printf("Extended field attribute: %s\n", field_attr.str);
+      diag("Extended field attribute: %.*s\n", (int)field_attr.length, field_attr.str);
     }
   }
   mysql_free_result(result);
@@ -1614,7 +1619,41 @@ static int test_ext_field_attr(MYSQL *mysql)
   return OK;
 }
 
+static int test_dsn(MYSQL *my __attribute__((unused)))
+{
+  MYSQL *mysql= mysql_init(NULL);
+  char dsn[1024];
+  int rc=OK;
+
+  snprintf(dsn, sizeof(dsn)-1, "host=%s;user=%s;password={%s};db=%s;port=%d",
+                hostname ? hostname : "localhost", username ? username : "", 
+                password ? password : "", 
+                schema ? schema : "", port);
+
+  /* SkySQL requires secure connection */
+  if (IS_SKYSQL(hostname))
+  {
+    strcat(dsn, ";ssl_enforce=1");
+  }
+
+  diag("dsn: %s", dsn);
+  
+  if (mariadb_dsn_connect(mysql, dsn, -1))
+  {
+    diag("host: %s", mysql->host);
+    diag("user: %s", mysql->user);
+    diag("cipher: %s", mysql_get_ssl_cipher(mysql));
+  } else
+  {
+    diag("error: %s", mysql_error(mysql));
+    rc= FAIL;
+  }
+  mysql_close(mysql);
+  return rc;
+}
+
 struct my_tests_st my_tests[] = {
+  {"test_dsn", test_dsn, TEST_CONNECTION_NONE, 0, NULL, NULL},
   {"test_ext_field_attr", test_ext_field_attr, TEST_CONNECTION_DEFAULT, 0, NULL, NULL},
   {"test_conc533", test_conc533, TEST_CONNECTION_NEW, 0, NULL, NULL},
   {"test_conc458", test_conc458, TEST_CONNECTION_NONE, 0, NULL, NULL},

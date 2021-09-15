@@ -604,70 +604,76 @@ mysql_free_result(MYSQL_RES *result)
 /****************************************************************************
 ** Get options from my.cnf
 ****************************************************************************/
-enum enum_option_type {
-  MARIADB_OPTION_NONE,
-  MARIADB_OPTION_BOOL,
-  MARIADB_OPTION_INT,
-  MARIADB_OPTION_SIZET,
-  MARIADB_OPTION_STR,
-};
-
-struct st_default_options {
-  enum mysql_option option;
-  enum enum_option_type type;
-  const char *conf_key;
-};
+extern int ma_parse_dsn(MYSQL *mysql, const char* dsn, ssize_t len);
 
 struct st_default_options mariadb_defaults[] =
 {
-  {MARIADB_OPT_PORT, MARIADB_OPTION_INT,"port"},
-  {MARIADB_OPT_UNIXSOCKET, MARIADB_OPTION_STR, "socket"},
-  {MYSQL_OPT_COMPRESS, MARIADB_OPTION_BOOL, "compress"},
-  {MARIADB_OPT_PASSWORD, MARIADB_OPTION_STR, "password"},
-  {MYSQL_OPT_NAMED_PIPE, MARIADB_OPTION_BOOL, "pipe"},
-  {MYSQL_OPT_CONNECT_TIMEOUT, MARIADB_OPTION_INT, "timeout"},
-  {MARIADB_OPT_USER, MARIADB_OPTION_STR, "user"},
-  {MYSQL_INIT_COMMAND, MARIADB_OPTION_STR, "init-command"},
-  {MARIADB_OPT_HOST, MARIADB_OPTION_STR, "host"},
-  {MARIADB_OPT_SCHEMA, MARIADB_OPTION_STR, "database"},
-  {MARIADB_OPT_DEBUG, MARIADB_OPTION_STR, "debug"},
-  {MARIADB_OPT_FOUND_ROWS, MARIADB_OPTION_NONE, "return-found-rows"},
-  {MYSQL_OPT_SSL_KEY, MARIADB_OPTION_STR, "ssl-key"},
-  {MYSQL_OPT_SSL_CERT, MARIADB_OPTION_STR,"ssl-cert"},
-  {MYSQL_OPT_SSL_CA, MARIADB_OPTION_STR,"ssl-ca"},
-  {MYSQL_OPT_SSL_CAPATH, MARIADB_OPTION_STR,"ssl-capath"},
-  {MYSQL_OPT_SSL_CRL, MARIADB_OPTION_STR,"ssl-crl"},
-  {MYSQL_OPT_SSL_CRLPATH, MARIADB_OPTION_STR,"ssl-crlpath"},
-  {MYSQL_OPT_SSL_VERIFY_SERVER_CERT, MARIADB_OPTION_BOOL,"ssl-verify-server-cert"},
-  {MYSQL_SET_CHARSET_DIR, MARIADB_OPTION_STR, "character-sets-dir"},
-  {MYSQL_SET_CHARSET_NAME, MARIADB_OPTION_STR, "default-character-set"},
-  {MARIADB_OPT_INTERACTIVE, MARIADB_OPTION_NONE, "interactive-timeout"},
-  {MYSQL_OPT_CONNECT_TIMEOUT, MARIADB_OPTION_INT, "connect-timeout"},
-  {MYSQL_OPT_LOCAL_INFILE, MARIADB_OPTION_BOOL, "local-infile"},
-  {0, 0 ,"disable-local-infile",},
-  {MYSQL_OPT_SSL_CIPHER, MARIADB_OPTION_STR, "ssl-cipher"},
-  {MYSQL_OPT_MAX_ALLOWED_PACKET, MARIADB_OPTION_SIZET, "max-allowed-packet"},
-  {MYSQL_OPT_NET_BUFFER_LENGTH, MARIADB_OPTION_SIZET, "net-buffer-length"},
-  {MYSQL_OPT_PROTOCOL, MARIADB_OPTION_INT, "protocol"},
-  {MYSQL_SHARED_MEMORY_BASE_NAME, MARIADB_OPTION_STR,"shared-memory-base-name"},
-  {MARIADB_OPT_MULTI_RESULTS, MARIADB_OPTION_NONE, "multi-results"},
-  {MARIADB_OPT_MULTI_STATEMENTS, MARIADB_OPTION_STR, "multi-statements"},
-  {MARIADB_OPT_MULTI_STATEMENTS, MARIADB_OPTION_STR, "multi-queries"},
-  {MYSQL_SECURE_AUTH, MARIADB_OPTION_BOOL, "secure-auth"},
-  {MYSQL_REPORT_DATA_TRUNCATION, MARIADB_OPTION_BOOL, "report-data-truncation"},
-  {MYSQL_OPT_RECONNECT, MARIADB_OPTION_BOOL, "reconnect"},
-  {MYSQL_PLUGIN_DIR, MARIADB_OPTION_STR, "plugin-dir"},
-  {MYSQL_DEFAULT_AUTH, MARIADB_OPTION_STR, "default-auth"},
-  {MARIADB_OPT_SSL_FP, MARIADB_OPTION_STR, "ssl-fp"},
-  {MARIADB_OPT_SSL_FP_LIST, MARIADB_OPTION_STR, "ssl-fp-list"},
-  {MARIADB_OPT_SSL_FP_LIST, MARIADB_OPTION_STR, "ssl-fplist"},
-  {MARIADB_OPT_TLS_PASSPHRASE, MARIADB_OPTION_STR, "ssl-passphrase"},
-  {MARIADB_OPT_TLS_VERSION, MARIADB_OPTION_STR, "tls-version"},
-  {MYSQL_SERVER_PUBLIC_KEY, MARIADB_OPTION_STR, "server-public-key"},
-  {MYSQL_OPT_BIND, MARIADB_OPTION_STR, "bind-address"},
-  {MYSQL_OPT_SSL_ENFORCE, MARIADB_OPTION_BOOL, "ssl-enforce"},
-  {MARIADB_OPT_RESTRICTED_AUTH, MARIADB_OPTION_STR, "restricted-auth"},
-  {0, 0, NULL}
+  {{MARIADB_OPT_PORT}, MARIADB_OPTION_INT,"port"},
+  {{MARIADB_OPT_UNIXSOCKET}, MARIADB_OPTION_STR, "socket"},
+  {{MYSQL_OPT_COMPRESS}, MARIADB_OPTION_BOOL, "compress"},
+  {{MARIADB_OPT_PASSWORD}, MARIADB_OPTION_STR, "password"},
+  {{MYSQL_OPT_NAMED_PIPE}, MARIADB_OPTION_BOOL, "pipe"},
+  {{MYSQL_OPT_CONNECT_TIMEOUT}, MARIADB_OPTION_INT, "timeout"},
+  {{MARIADB_OPT_USER}, MARIADB_OPTION_STR, "user"},
+  {{MYSQL_INIT_COMMAND}, MARIADB_OPTION_STR, "init-command"},
+  {{MARIADB_OPT_HOST}, MARIADB_OPTION_STR, "host"},
+  {{MARIADB_OPT_SCHEMA}, MARIADB_OPTION_STR, "database"},
+  {{MARIADB_OPT_DEBUG}, MARIADB_OPTION_STR, "debug"},
+  {{MARIADB_OPT_FOUND_ROWS}, MARIADB_OPTION_NONE, "return-found-rows"},
+  {{MYSQL_OPT_SSL_KEY}, MARIADB_OPTION_STR, "ssl-key"},
+  {{MYSQL_OPT_SSL_CERT}, MARIADB_OPTION_STR,"ssl-cert"},
+  {{MYSQL_OPT_SSL_CA}, MARIADB_OPTION_STR,"ssl-ca"},
+  {{MYSQL_OPT_SSL_CAPATH}, MARIADB_OPTION_STR,"ssl-capath"},
+  {{MYSQL_OPT_SSL_CRL}, MARIADB_OPTION_STR,"ssl-crl"},
+  {{MYSQL_OPT_SSL_CRLPATH}, MARIADB_OPTION_STR,"ssl-crlpath"},
+  {{MYSQL_OPT_SSL_VERIFY_SERVER_CERT}, MARIADB_OPTION_BOOL,"ssl-verify-server-cert"},
+  {{MYSQL_SET_CHARSET_DIR}, MARIADB_OPTION_STR, "character-sets-dir"},
+  {{MYSQL_SET_CHARSET_NAME}, MARIADB_OPTION_STR, "default-character-set"},
+  {{MARIADB_OPT_INTERACTIVE}, MARIADB_OPTION_NONE, "interactive-timeout"},
+  {{MYSQL_OPT_CONNECT_TIMEOUT}, MARIADB_OPTION_INT, "connect-timeout"},
+  {{MYSQL_OPT_LOCAL_INFILE}, MARIADB_OPTION_BOOL, "local-infile"},
+  {{0}, 0 ,"disable-local-infile",},
+  {{MYSQL_OPT_SSL_CIPHER}, MARIADB_OPTION_STR, "ssl-cipher"},
+  {{MYSQL_OPT_MAX_ALLOWED_PACKET}, MARIADB_OPTION_SIZET, "max-allowed-packet"},
+  {{MYSQL_OPT_NET_BUFFER_LENGTH}, MARIADB_OPTION_SIZET, "net-buffer-length"},
+  {{MYSQL_OPT_PROTOCOL}, MARIADB_OPTION_INT, "protocol"},
+  {{MYSQL_SHARED_MEMORY_BASE_NAME}, MARIADB_OPTION_STR,"shared-memory-base-name"},
+  {{MARIADB_OPT_MULTI_RESULTS}, MARIADB_OPTION_BOOL, "multi-results"},
+  {{MARIADB_OPT_MULTI_STATEMENTS}, MARIADB_OPTION_BOOL, "multi-statements"},
+  {{MARIADB_OPT_MULTI_STATEMENTS}, MARIADB_OPTION_BOOL, "multi-queries"},
+  {{MYSQL_SECURE_AUTH}, MARIADB_OPTION_BOOL, "secure-auth"},
+  {{MYSQL_REPORT_DATA_TRUNCATION}, MARIADB_OPTION_BOOL, "report-data-truncation"},
+  {{MYSQL_OPT_RECONNECT}, MARIADB_OPTION_BOOL, "reconnect"},
+  {{MYSQL_PLUGIN_DIR}, MARIADB_OPTION_STR, "plugin-dir"},
+  {{MYSQL_DEFAULT_AUTH}, MARIADB_OPTION_STR, "default-auth"},
+  {{MARIADB_OPT_SSL_FP}, MARIADB_OPTION_STR, "ssl-fp"},
+  {{MARIADB_OPT_SSL_FP_LIST}, MARIADB_OPTION_STR, "ssl-fp-list"},
+  {{MARIADB_OPT_SSL_FP_LIST}, MARIADB_OPTION_STR, "ssl-fplist"},
+  {{MARIADB_OPT_TLS_PASSPHRASE}, MARIADB_OPTION_STR, "ssl-passphrase"},
+  {{MARIADB_OPT_TLS_VERSION}, MARIADB_OPTION_STR, "tls-version"},
+  {{MYSQL_SERVER_PUBLIC_KEY}, MARIADB_OPTION_STR, "server-public-key"},
+  {{MYSQL_OPT_BIND}, MARIADB_OPTION_STR, "bind-address"},
+  {{MYSQL_OPT_SSL_ENFORCE}, MARIADB_OPTION_BOOL, "ssl-enforce"},
+  {{MARIADB_OPT_RESTRICTED_AUTH}, MARIADB_OPTION_STR, "restricted-auth"},
+  {{.option_func=ma_parse_dsn}, MARIADB_OPTION_FUNC, "dsn"},
+  /* Aliases */
+  {{MARIADB_OPT_SCHEMA}, MARIADB_OPTION_STR, "db"},
+  {{MARIADB_OPT_UNIXSOCKET}, MARIADB_OPTION_STR, "unix_socket"},
+  {{MARIADB_OPT_HOST}, MARIADB_OPTION_STR, "servername"},
+  {{MARIADB_OPT_PASSWORD}, MARIADB_OPTION_STR, "passwd"},
+  {{MARIADB_OPT_SSL_FP}, MARIADB_OPTION_STR, "tls-fp"},
+  {{MARIADB_OPT_SSL_FP_LIST}, MARIADB_OPTION_STR, "tls-fplist"},
+  {{MYSQL_OPT_SSL_KEY}, MARIADB_OPTION_STR, "tls-key"},
+  {{MYSQL_OPT_SSL_CERT}, MARIADB_OPTION_STR,"tls-cert"},
+  {{MYSQL_OPT_SSL_CA}, MARIADB_OPTION_STR,"tls-ca"},
+  {{MYSQL_OPT_SSL_CAPATH}, MARIADB_OPTION_STR,"tls-capath"},
+  {{MYSQL_OPT_SSL_CRL}, MARIADB_OPTION_STR,"tls-crl"},
+  {{MYSQL_OPT_SSL_CRLPATH}, MARIADB_OPTION_STR,"tls-crlpath"},
+  {{MYSQL_OPT_SSL_CIPHER}, MARIADB_OPTION_STR, "tls-cipher"},
+  {{MARIADB_OPT_TLS_PASSPHRASE}, MARIADB_OPTION_STR, "tls-passphrase"},
+  {{MYSQL_OPT_SSL_ENFORCE}, MARIADB_OPTION_BOOL, "tls-enforce"},
+  {{MYSQL_OPT_SSL_VERIFY_SERVER_CERT}, MARIADB_OPTION_BOOL,"tls-verify-peer"},
+  {{0}, 0, NULL}
 };
 
 #define CHECK_OPT_EXTENSION_SET(OPTS)\
@@ -733,6 +739,9 @@ my_bool _mariadb_set_conf_option(MYSQL *mysql, const char *config_option, const 
         int rc;
         void *option_val= NULL;
         switch (mariadb_defaults[i].type) {
+        case MARIADB_OPTION_FUNC:
+          return mariadb_defaults[i].u.option_func(mysql, config_value, -1);
+          break;
         case MARIADB_OPTION_BOOL:
           val_bool= 0;
           if (config_value)
@@ -757,7 +766,7 @@ my_bool _mariadb_set_conf_option(MYSQL *mysql, const char *config_option, const 
         case MARIADB_OPTION_NONE:
           break;
         }
-        rc= mysql_optionsv(mysql, mariadb_defaults[i].option, option_val);
+        rc= mysql_optionsv(mysql, mariadb_defaults[i].u.option, option_val);
         return(test(rc));
       }
     }

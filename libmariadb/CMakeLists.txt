@@ -11,6 +11,7 @@ SET(MARIADB_LIB_SYMBOLS
  mariadb_cancel
  mariadb_connection
  mariadb_convert_string
+ mariadb_dns_connect
  ma_pvio_register_callback
  mariadb_get_charset_by_name
  mariadb_stmt_execute_direct
@@ -272,6 +273,7 @@ CONFIGURE_FILE(${CC_SOURCE_DIR}/libmariadb/ma_client_plugin.c.in
 SET(LIBMARIADB_SOURCES ${LIBMARIADB_SOURCES}
 ${CC_SOURCE_DIR}/plugins/auth/my_auth.c
 ma_array.c
+mariadb_dsn.c
 ma_charset.c
 ma_hashtbl.c
 ma_net.c
