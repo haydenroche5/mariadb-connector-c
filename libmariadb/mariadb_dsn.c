@@ -28,6 +28,10 @@
 #include <stdio.h>
 #include <errmsg.h>
 
+#ifdef WIN32
+#include <malloc.h>
+#endif
+
 extern my_bool _mariadb_set_conf_option(MYSQL *mysql, const char *config_option, const char *config_value);
 
 /**

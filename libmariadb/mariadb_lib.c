@@ -39,6 +39,10 @@
 #include <time.h>
 #include <mariadb_dyncol.h>
 
+#ifdef WIN32
+#include <malloc.h>
+#endif
+
 #ifndef __has_feature
 # define __has_feature(x) 0
 #endif
