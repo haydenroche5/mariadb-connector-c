@@ -32,8 +32,11 @@ extern "C" {
 #define MYSQL_CLIENT
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
 #ifdef _MSC_VER
 typedef SSIZE_T ssize_t;
+#endif
 #endif
 
 #include <stdarg.h>
