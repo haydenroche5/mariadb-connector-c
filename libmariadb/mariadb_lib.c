@@ -1345,12 +1345,53 @@ mysql_real_connect(MYSQL *mysql, const char *host, const char *user,
 #endif
 }
 
+struct st_host {
+  char *host;
+  int port;
+};
+
+static void ma_get_host_list(char *host_list, struct st_host *host_info, int default_port)
+{
+  char *token, *start, *save;
+  int host_nr= 0;
+
+  start= host_list;
+  while ((token= strtok_r(start, ",", &save)))
+  {
+    char *p;
+
+    /* ipv6 hostname */
+    if ((p= strchr(token, ']')))
+    {
+      host_info[host_nr].host= token + 1;
+      *p++= 0;
+      token= p;
+    }
+    else
+      host_info[host_nr].host= token;
+    /* check if port was specified */
+    if ((p= strchr(token, ':')))
+    {
+      *p++= 0;
+      host_info[host_nr].port= atoi(p);
+    }
+    else
+      host_info[host_nr].port= default_port;
+    host_nr++;
+    start= NULL;
+  }
+  return;
+}
+
 MYSQL *mthd_my_real_connect(MYSQL *mysql, const char *host, const char *user,
 		   const char *passwd, const char *db,
 		   uint port, const char *unix_socket, unsigned long client_flag)
 {
   char		buff[NAME_LEN+USERNAME_LENGTH+100];
   char		*end, *end_pkt, *host_info;
+  struct st_host *hosts= NULL;
+  int     host_count= 1;
+  int     connect_attempts= 0;
   MA_PVIO_CINFO  cinfo= {NULL, NULL, 0, -1, NULL};
   MARIADB_PVIO   *pvio= NULL;
   char    *scramble_data;
@@ -1382,6 +1423,42 @@ MYSQL *mthd_my_real_connect(MYSQL *mysql, const char *host, const char *user,
 
   if (!host || !host[0])
     host = mysql->options.host;
+  if (!port)
+    port=mysql->options.port;
+
+  /* check if we have multi hosts */
+  if (host && host[0] && strchr(host, ','))
+  {
+    char *p, *hostlist;
+
+    /* don't change original entry, so let's make a copy */
+    hostlist= alloca(strlen(host) + 1);
+    strcpy(hostlist, host);
+    p= hostlist;
+
+    /* Hosts are comma separated, count the number */
+    while ((p = strchr(p, ',')))
+    {
+      host_count++;
+      p++;
+    }
+
+    if (!(hosts= (struct st_host *)alloca(host_count * sizeof(struct st_host))))
+      goto error;
+    memset(hosts, 0, host_count * sizeof(struct st_host));
+
+    ma_get_host_list(hostlist, hosts, port);
+  }
+
+restart:
+  if (connect_attempts >= host_count)
+    goto error;
+
+  if (hosts)
+  {
+    host= hosts[connect_attempts].host;
+    port= hosts[connect_attempts].port;
+  }
 
   ma_set_connect_attrs(mysql, host);
 
@@ -1408,8 +1485,6 @@ MYSQL *mthd_my_real_connect(MYSQL *mysql, const char *host, const char *user,
   }
   if (!db || !db[0])
     db=mysql->options.db;
-  if (!port)
-    port=mysql->options.port;
   if (!unix_socket)
     unix_socket=mysql->options.unix_socket;
 
@@ -1472,7 +1547,8 @@ MYSQL *mthd_my_real_connect(MYSQL *mysql, const char *host, const char *user,
   if (ma_pvio_connect(pvio, &cinfo) != 0)
   {
     ma_pvio_close(pvio);
-    goto error;
+    connect_attempts++;
+    goto restart;
   }
 
   if (mysql->options.extension && mysql->options.extension->proxy_header)

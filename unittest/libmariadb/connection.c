@@ -1982,7 +1982,54 @@ static int test_conc544(MYSQL *mysql)
   return OK;
 }
 
+static int test_conc365(MYSQL *my __attribute__((unused)))
+{
+  int rc= OK;
+  MYSQL *mysql= mysql_init(NULL);
+  char tmp[1024];
+
+  snprintf(tmp, sizeof(tmp) - 1,
+   "host=127.0.0.1:3300,%s;user=%s;password=%s;port=%d",
+   hostname ? hostname : "localhost", username ? username : "", password ? password : "",
+   port);
+
+ if (!mariadb_dsn_connect(mysql, tmp, -1))
+   rc= FAIL;
+
+  mysql_close(mysql);
+
+  if (rc)
+    return rc;
+
+  mysql= mysql_init(NULL);
+  snprintf(tmp, sizeof(tmp) -1, "127.0.0.1:3300,%s:%d", hostname ? hostname : "localhost", port);
+  if (!my_test_connect(mysql, tmp, username,
+                             password, schema, port, socketname, 0))
+  {
+    diag("Error: %s", mysql_error(mysql));
+    rc= FAIL;
+  }
+
+  mysql_close(mysql);
+
+  if (rc)
+    return rc;
+  
+  mysql= mysql_init(NULL);
+  mysql_options(mysql, MARIADB_OPT_HOST, tmp);
+  if (!my_test_connect(mysql, NULL, username,
+                             password, schema, port, socketname, 0))
+  {
+    diag("Error: %s", mysql_error(mysql));
+    rc= FAIL;
+  }
+
+  mysql_close(mysql);
+  return rc;
+}
+
 struct my_tests_st my_tests[] = {
+  {"test_conc365", test_conc365, TEST_CONNECTION_NONE, 0, NULL, NULL},
   {"test_conc544", test_conc544, TEST_CONNECTION_DEFAULT, 0, NULL, NULL},
   {"test_conc490", test_conc490, TEST_CONNECTION_NONE, 0, NULL, NULL},
   {"test_gtid", test_gtid, TEST_CONNECTION_DEFAULT, 0, NULL, NULL},
