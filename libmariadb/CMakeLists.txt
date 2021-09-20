@@ -11,7 +11,7 @@ SET(MARIADB_LIB_SYMBOLS
  mariadb_cancel
  mariadb_connection
  mariadb_convert_string
- mariadb_dns_connect
+ mariadb_dsn_connect
  ma_pvio_register_callback
  mariadb_get_charset_by_name
  mariadb_stmt_execute_direct

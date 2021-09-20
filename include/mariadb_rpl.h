@@ -266,8 +266,8 @@ typedef struct st_mariadb_rpl_event
   unsigned int checksum;
   char ok;
   enum mariadb_rpl_event event_type;
-  u_int8_t is_semi_sync;
-  u_int8_t semi_sync_flags;
+  uint8_t is_semi_sync;
+  uint8_t semi_sync_flags;
   unsigned int timestamp;
   unsigned int server_id;
   unsigned int event_length;
