@@ -623,7 +623,7 @@ MYSQL *my_test_connect(MYSQL *mysql,
                        const char *unix_socket,
                        unsigned long clientflag)
 {
-  if (force_tls)
+  if (IS_SKYSQL(host) || force_tls)
     mysql_options(mysql, MYSQL_OPT_SSL_ENFORCE, &force_tls); 
   if (!mysql_real_connect(mysql, host, user, passwd, db, port, unix_socket, clientflag))
   {
