@@ -1993,6 +1993,9 @@ static int test_conc365(MYSQL *my __attribute__((unused)))
    hostname ? hostname : "localhost", username ? username : "", password ? password : "",
    port);
 
+ if (IS_SKYSQL(hostname))
+   strcat(tmp, ";ssl_enforce=1");
+
  if (!mariadb_dsn_connect(mysql, tmp, -1))
    rc= FAIL;
 
