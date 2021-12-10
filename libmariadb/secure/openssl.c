@@ -25,6 +25,9 @@
 #include <string.h>
 #include <mysql/client_plugin.h>
 #include <string.h>
+#ifdef HAVE_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/ssl.h> /* SSL and SSL_CTX */
 #include <openssl/err.h> /* error reporting */
 #include <openssl/conf.h>
@@ -34,7 +37,8 @@
 #include <openssl/applink.c>
 #endif
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER) \
+    || defined(HAVE_WOLFSSL)
 #include <openssl/x509v3.h>
 #define HAVE_OPENSSL_CHECK_HOST 1
 #endif
@@ -74,7 +78,7 @@ extern unsigned int mariadb_deinitialize_ssl;
 char tls_library_version[TLS_VERSION_LENGTH];
 
 static pthread_mutex_t LOCK_openssl_config;
-#ifndef HAVE_OPENSSL_1_1_API
+#if !defined(HAVE_OPENSSL_1_1_API) && !defined(HAVE_WOLFSSL)
 static pthread_mutex_t *LOCK_crypto= NULL;
 #endif
 #if defined(OPENSSL_USE_BIOMETHOD)
@@ -142,7 +146,7 @@ static void ma_tls_set_error(MYSQL *mysql)
   return;
 }
 
-#ifndef HAVE_OPENSSL_1_1_API
+#if !defined(HAVE_OPENSSL_1_1_API) && !defined(HAVE_WOLFSSL)
 static void my_cb_locking(int mode, int n,
                           const char *file __attribute__((unused)),
                           int line __attribute__((unused)))
@@ -219,11 +223,13 @@ int ma_tls_start(char *errmsg __attribute__((unused)), size_t errmsg_len __attri
   if (!OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL))
     goto end;
 #else
+#ifndef HAVE_WOLFSSL
   if (ssl_thread_init())
   {
     strncpy(errmsg, "Not enough memory", errmsg_len);
     goto end;
   }
+#endif
   SSL_library_init();
 #if SSLEAY_VERSION_NUMBER >= 0x00907000L
   OPENSSL_config(NULL);
@@ -252,7 +258,9 @@ int ma_tls_start(char *errmsg __attribute__((unused)), size_t errmsg_len __attri
     *p= 0;
   rc= 0;
   ma_tls_initialized= TRUE;
+#ifndef HAVE_WOLFSSL
 end:
+#endif
   pthread_mutex_unlock(&LOCK_openssl_config);
   return rc;
 }
@@ -273,6 +281,7 @@ void ma_tls_end()
 {
   if (ma_tls_initialized)
   {
+#ifndef HAVE_WOLFSSL
     pthread_mutex_lock(&LOCK_openssl_config);
 #ifndef HAVE_OPENSSL_1_1_API
     if (LOCK_crypto)
@@ -286,6 +295,7 @@ void ma_tls_end()
       ma_free((gptr)LOCK_crypto);
       LOCK_crypto= NULL;
     }
+#endif
 #endif
     if (mariadb_deinitialize_ssl)
     {
@@ -342,8 +352,10 @@ static int ma_tls_set_certs(MYSQL *mysql, SSL_CTX *ctx)
   {
     if (mysql->options.ssl_ca || mysql->options.ssl_capath)
       goto error;
+#ifndef HAVE_WOLFSSL
     if (SSL_CTX_set_default_verify_paths(ctx) == 0)
       goto error;
+#endif
   }
 
   if (mysql->options.extension &&
@@ -412,6 +424,32 @@ error:
   return 1;
 }
 
+#ifdef HAVE_WOLFSSL
+static int wolfssl_recv(WOLFSSL* ssl, char* buf, int sz, void* pvio)
+{
+  size_t ret;
+  MARIADB_PVIO* pvioCast;
+  pvioCast = (MARIADB_PVIO *)pvio;
+  (void)ssl;
+  ret = pvioCast->methods->read((MARIADB_PVIO *)pvio, (uchar *)buf, sz);
+  /* check if connection was closed */
+  if (ret == 0)
+    return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+
+  return (int)ret;
+}
+
+static int wolfssl_send(WOLFSSL* ssl, char* buf, int sz, void* pvio)
+{
+  int ret;
+  MARIADB_PVIO* pvioCast;
+  (void)ssl;
+  pvioCast = (MARIADB_PVIO *)pvio;
+  ret = (int)pvioCast->methods->write(pvioCast, (unsigned char*)buf, sz);
+  return ret;
+}
+#endif /* HAVE_WOLFSSL */
+
 void *ma_tls_init(MYSQL *mysql)
 {
   SSL *ssl= NULL;
@@ -428,6 +466,11 @@ void *ma_tls_init(MYSQL *mysql)
   if (!(ctx= SSL_CTX_new(SSLv23_client_method())))
 #endif
     goto error;
+#ifdef HAVE_WOLFSSL
+  /* set IO functions used by wolfSSL */
+  wolfSSL_SetIORecv(ctx, wolfssl_recv);
+  wolfSSL_SetIOSend(ctx, wolfssl_send);
+#endif
   if (mysql->options.extension) 
     options= ma_tls_version_options(mysql->options.extension->tls_version);
   SSL_CTX_set_options(ctx, options ? options : default_options);
@@ -482,6 +525,12 @@ my_bool ma_tls_connect(MARIADB_TLS *ctls)
   BIO_set_fd(bio, mysql_get_socket(mysql), BIO_NOCLOSE);
 #else
   SSL_set_fd(ssl, (int)mysql_get_socket(mysql));
+#endif
+
+#ifdef HAVE_WOLFSSL
+  /* Set first argument of the transport functions. */
+  wolfSSL_SetIOReadCtx(ssl, pvio);
+  wolfSSL_SetIOWriteCtx(ssl, pvio);
 #endif
 
   while (try_connect && (rc= SSL_connect(ssl)) == -1)
