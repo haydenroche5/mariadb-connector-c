@@ -330,8 +330,10 @@ static int ma_tls_set_certs(MYSQL *mysql, SSL_CTX *ctx)
 {
   char *certfile= mysql->options.ssl_cert,
        *keyfile= mysql->options.ssl_key;
+#if !defined(HAVE_WOLFSSL) || !defined(HAVE_LIBOQS)
   char *pw= (mysql->options.extension) ?
             mysql->options.extension->tls_pw : NULL;
+#endif
 
   /* add cipher */
   if ((mysql->options.ssl_cipher &&
@@ -390,6 +392,9 @@ static int ma_tls_set_certs(MYSQL *mysql, SSL_CTX *ctx)
 
   if (keyfile && keyfile[0])
   {
+#if defined(HAVE_WOLFSSL) && defined(HAVE_LIBOQS)
+    if (SSL_CTX_use_PrivateKey_file(ctx, keyfile, SSL_FILETYPE_PEM) < 1) {
+#else
     FILE *fp;
     if ((fp= fopen(keyfile, "rb")))
     {
@@ -406,6 +411,7 @@ static int ma_tls_set_certs(MYSQL *mysql, SSL_CTX *ctx)
       }
       EVP_PKEY_free(key);
     } else {
+#endif
       my_set_error(mysql, CR_SSL_CONNECTION_ERROR, SQLSTATE_UNKNOWN, 
                    CER(CR_FILE_NOT_FOUND), keyfile);
       return 1;
@@ -450,6 +456,121 @@ static int wolfssl_send(WOLFSSL* ssl, char* buf, int sz, void* pvio)
 }
 #endif /* HAVE_WOLFSSL */
 
+#if defined(HAVE_WOLFSSL) && defined(HAVE_LIBOQS)
+static word16 get_pq_codepoint(void) {
+  char *group_name = getenv("WOLFSSL_PQ_GROUP");
+  if (group_name == NULL) {
+    return 0;
+  }
+
+  if (XSTRNCMP(group_name, "KYBER_LEVEL1", XSTRLEN("KYBER_LEVEL1")) == 0) {
+    return WOLFSSL_KYBER_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "KYBER_LEVEL3",
+                    XSTRLEN("KYBER_LEVEL3")) == 0) {
+    return WOLFSSL_KYBER_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "KYBER_LEVEL5",
+                    XSTRLEN("KYBER_LEVEL5")) == 0) {
+    return WOLFSSL_KYBER_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "NTRU_HPS_LEVEL1",
+                    XSTRLEN("NTRU_HPS_LEVEL1")) == 0) {
+    return WOLFSSL_NTRU_HPS_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "NTRU_HPS_LEVEL3",
+                    XSTRLEN("NTRU_HPS_LEVEL3")) == 0) {
+    return WOLFSSL_NTRU_HPS_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "NTRU_HPS_LEVEL5",
+                    XSTRLEN("NTRU_HPS_LEVEL5")) == 0) {
+    return WOLFSSL_NTRU_HPS_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "NTRU_HRSS_LEVEL3",
+                    XSTRLEN("NTRU_HRSS_LEVEL3")) == 0) {
+    return WOLFSSL_NTRU_HRSS_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "SABER_LEVEL1",
+                    XSTRLEN("SABER_LEVEL1")) == 0) {
+    return WOLFSSL_SABER_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "SABER_LEVEL3",
+                    XSTRLEN("SABER_LEVEL3")) == 0) {
+    return WOLFSSL_SABER_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "SABER_LEVEL5",
+                    XSTRLEN("SABER_LEVEL5")) == 0) {
+    return WOLFSSL_SABER_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "KYBER_90S_LEVEL1",
+                    XSTRLEN("KYBER_90S_LEVEL1")) == 0) {
+    return WOLFSSL_KYBER_90S_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "KYBER_90S_LEVEL3",
+                    XSTRLEN("KYBER_90S_LEVEL3")) == 0) {
+    return WOLFSSL_KYBER_90S_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "KYBER_90S_LEVEL5",
+                    XSTRLEN("KYBER_90S_LEVEL5")) == 0) {
+    return WOLFSSL_KYBER_90S_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "P256_NTRU_HPS_LEVEL1",
+                    XSTRLEN("P256_NTRU_HPS_LEVEL1")) == 0) {
+    return WOLFSSL_P256_NTRU_HPS_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "P384_NTRU_HPS_LEVEL3",
+                    XSTRLEN("P384_NTRU_HPS_LEVEL3")) == 0) {
+    return WOLFSSL_P384_NTRU_HPS_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "P521_NTRU_HPS_LEVEL5",
+                    XSTRLEN("P521_NTRU_HPS_LEVEL5")) == 0) {
+    return WOLFSSL_P521_NTRU_HPS_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "P384_NTRU_HRSS_LEVEL3",
+                    XSTRLEN("P384_NTRU_HRSS_LEVEL3")) == 0) {
+    return WOLFSSL_P384_NTRU_HRSS_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "P256_SABER_LEVEL1",
+                    XSTRLEN("P256_SABER_LEVEL1")) == 0) {
+    return WOLFSSL_P256_SABER_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "P384_SABER_LEVEL3",
+                    XSTRLEN("P384_SABER_LEVEL3")) == 0) {
+    return WOLFSSL_P384_SABER_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "P521_SABER_LEVEL5",
+                    XSTRLEN("P521_SABER_LEVEL5")) == 0) {
+    return WOLFSSL_P521_SABER_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "P256_KYBER_LEVEL1",
+                    XSTRLEN("P256_KYBER_LEVEL1")) == 0) {
+    return WOLFSSL_P256_KYBER_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "P384_KYBER_LEVEL3",
+                    XSTRLEN("P384_KYBER_LEVEL3")) == 0) {
+    return WOLFSSL_P384_KYBER_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "P521_KYBER_LEVEL5",
+                    XSTRLEN("P521_KYBER_LEVEL5")) == 0) {
+    return WOLFSSL_P521_KYBER_LEVEL5;
+  }
+  else if (XSTRNCMP(group_name, "P256_KYBER_90S_LEVEL1",
+                    XSTRLEN("P256_KYBER_90S_LEVEL1")) == 0) {
+    return WOLFSSL_P256_KYBER_90S_LEVEL1;
+  }
+  else if (XSTRNCMP(group_name, "P384_KYBER_90S_LEVEL3",
+                    XSTRLEN("P384_KYBER_90S_LEVEL3")) == 0) {
+    return WOLFSSL_P384_KYBER_90S_LEVEL3;
+  }
+  else if (XSTRNCMP(group_name, "P521_KYBER_90S_LEVEL5",
+                    XSTRLEN("P521_KYBER_90S_LEVEL5")) == 0) {
+    return WOLFSSL_P521_KYBER_90S_LEVEL5;
+  }
+
+  return 0xFFFF;
+}
+#endif
+
 void *ma_tls_init(MYSQL *mysql)
 {
   SSL *ssl= NULL;
@@ -458,6 +579,10 @@ void *ma_tls_init(MYSQL *mysql)
                         SSL_OP_NO_SSLv2 |
                         SSL_OP_NO_SSLv3;
   long options= 0;
+#if defined(HAVE_WOLFSSL) && defined(HAVE_LIBOQS)
+  word16 pq_codepoint = 0;
+#endif
+
   pthread_mutex_lock(&LOCK_openssl_config);
 
   #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -482,6 +607,20 @@ void *ma_tls_init(MYSQL *mysql)
 
   if (!(ssl= SSL_new(ctx)))
     goto error;
+
+#if defined(HAVE_WOLFSSL) && defined(HAVE_LIBOQS)
+  pq_codepoint = get_pq_codepoint();
+
+  /* This logic does nothing if env var was not defined. */
+  if (pq_codepoint == 0xFFFF) {
+    /* Env var defined to a bad value. */
+    goto error;
+  } else if (pq_codepoint) {
+    if (wolfSSL_UseKeyShare(ssl, pq_codepoint) != WOLFSSL_SUCCESS) {
+      goto error;
+    }
+  }
+#endif
 
   if (!SSL_set_app_data(ssl, mysql))
     goto error;
